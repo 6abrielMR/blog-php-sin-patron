@@ -9,7 +9,6 @@ if (isset($_POST)) {
     $nombre = isset($_POST['nombre']) ? mysqli_real_escape_string($db, $_POST['nombre']) : false;
     $apellidos = isset($_POST['apellidos']) ? mysqli_real_escape_string($db, $_POST['apellidos']) : false;
     $email = isset($_POST['email']) ? mysqli_real_escape_string($db, trim($_POST['email'])) : false;
-    $password = isset($_POST['password']) ? mysqli_real_escape_string($db, $_POST['password']) : false;
 
     // Array de errores
     $errores = array();
@@ -39,34 +38,38 @@ if (isset($_POST)) {
         $errores['email'] = "El email no es válido";
     }
 
-    // Validar contraseña
-    if (!empty($password)) {
-        echo "el nombre es valido";
-        $passwordValidado = true;
-    } else {
-        $passwordValidado = false;
-        $errores['password'] = "La contraseña está vacía";
-    }
-
-    $guardarUsuario = false;
-
     if (count($errores) == 0) {
-        $guardarUsuario = true;
-        // Cifrar la contraseña
-        $password_segura = password_hash($password, PASSWORD_BCRYPT, ['cost'=>4]);
-        // Insertar usuario en la tabla usuarios
-        $sql = "insert into usuarios values(null, '$nombre', '$apellidos', '$email', '$password_segura', curdate());";
-        $guardar = mysqli_query($db, $sql);
+        $usuario = $_SESSION['usuario'];
+        // Comprobar si el usuario no existe
+        $sql = "select id, email from usuarios where email = '$email'";
+        $isset_email = mysqli_query($db, $sql);
+        $isset_user = mysqli_fetch_assoc($isset_email);
 
-        if ($guardar) {
-            $_SESSION['completado'] = "El registro se ha completado con éxito.";
+        if ($isset_user['id'] == $usuario['id'] || empty($isset_user)) {
+            // Actualizar usuario en la tabla usuarios
+            $sql = "update usuarios set ".
+            "nombre = '$nombre', ".
+            "apellidos = '$apellidos', ".
+            "email = '$email' ".
+            "where id = ".$usuario['id'];
+            $guardar = mysqli_query($db, $sql);
+
+            if ($guardar) {
+                $_SESSION['usuario']['nombre'] = $nombre;
+                $_SESSION['usuario']['apellidos'] = $apellidos;
+                $_SESSION['usuario']['email'] = $email;
+                $_SESSION['completado'] = "Tus datos se han actualizado con éxito.";
+                header("Location: mis-datos.php");
+            } else {
+                $_SESSION['errores']['general'] = "Fallo al actualizar tus datos.";
+                header("Location: mis-datos.php");
+            }
         } else {
-            $_SESSION['errores']['general'] = "Fallo al guardar el usuario.";
+            $_SESSION['errores']['general'] = "Este correo ya existe.";
+            header("Location: mis-datos.php");
         }
     } else {
         $_SESSION['errores'] = $errores;
-	    header("Location: index.php");
+	    header("Location: mis-datos.php");
     }
 }
-
-header("Location: index.php");

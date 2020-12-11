@@ -37,11 +37,22 @@ if (isset($_POST)) {
 
     // Validar si existen errores
     if (count($errores) == 0) {
-        $sql = "insert into entradas values(null, $usuario, $categoria, '$titulo', '$descripcion', curdate())";
+        if (isset($_GET['editar'])) {
+            $entrada_id = $_GET['editar'];
+            $usuario_id = $_SESSION['usuario']['id'];
+            $sql = "update entradas set titulo='$titulo', descripcion='$descripcion', categoria_id='$categoria'".
+                " where id = $entrada_id and usuario_id = $usuario_id";
+        } else {
+            $sql = "insert into entradas values(null, $usuario, $categoria, '$titulo', '$descripcion', curdate())";
+        }
         $guardar = mysqli_query($db, $sql);
         header("Location: index.php");
     } else {
         $_SESSION['errores_entrada'] = $errores;
-        header("Location: crear-entradas.php");
+        if (isset($_GET['editar'])) {
+            header("Location: editar-entrada.php?id=".$_GET['editar']);
+        } else {
+            header("Location: crear-entradas.php");
+        }
     }
 }
